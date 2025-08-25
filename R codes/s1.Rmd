@@ -1,0 +1,65 @@
+---
+title: "Assignment_5"
+author: "Juhi Bhattacharya"
+date: "2024-09-12"
+output: html_document
+---
+Use rnorm to sample from a Normal distribution with mean = 100 and standard deviation 15. 
+
+But I want you to systematically vary sample size as follows (variable n): 1, 5, 10, 100, 1000, 10000
+
+And also systematically vary the experiment size (variable i): 10, 100, 1000, 10000, 100000
+
+For each sample, compute the mean, standard deviation and plot the resulting distribution. 
+
+Note down your remarks at the end on what happens with increase in i and n.
+
+```{r}
+sample_sizes <- c(1, 5, 10, 100, 1000, 10000)
+experiment_sizes <- c(10, 100, 1000, 10000, 100000)
+
+means <- 0 
+std <- 0
+j <- 0
+
+for (x in 1:5) {
+  j <- experiment_sizes[x]
+  for (i in 1:j) {
+    IQ.n <- round(rnorm(n=sample_sizes, mean = 100, sd = 15))
+    means[i] <- mean(IQ.n)
+    std[i] <- sd(IQ.n)
+}
+hist_means <- hist(means)
+plot(hist_means$mids, hist_means$density, type='l',col='blue',lwd=3 )
+  
+}
+```
+# REMARK: Histograms of means of all samples. As we increase n and i it is going to become more narrowed. It is converging towards true mean (almost looks like normmal distribution).
+
+```{r}
+means <- 0 #Initializing vector # i =no. of samples/experiment size
+for (i in 1:10) {
+  IQ.n <- round(rnorm(n=1, mean = 100, sd = 15))
+  s[i] <- sqrt(((IQ.n-mean(IQ.n))^2)/length(IQ.n))
+  means[i] <- mean(IQ.n)
+}
+hist_means <- hist(means)
+hist_sd <- hist(s)
+plot(hist_means$mids, hist_means$density, type='l',col='blue',lwd=3 )
+```
+
+```{r}
+means <- 0 #Initializing vector # i =no. of samples/experiment size
+ssd <- 0
+for (i in 1:10) {
+  IQ.n <- round(rnorm(n=1, mean = 100, sd = 15))
+  s[i] <- ((IQ.n-mean(IQ.n))^2)/length(IQ.n)
+  ssd[i] <- sd(IQ.n)
+  means[i] <- mean(IQ.n)
+}
+hist_means <- hist(means)
+hist_sd <- hist(s)
+hist_ssd <- hist(ssd)
+plot(hist_means$mids, hist_means$density, type='l',col='blue',lwd=3 )
+```
+

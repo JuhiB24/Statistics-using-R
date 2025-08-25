@@ -1,0 +1,264 @@
+---
+title: "A6"
+author: "Juhi Bhattacharya"
+date: "2024-10-28"
+output: html_document
+---
+
+#Chi-square Test
+
+Loading the Hair and Eye color dataset
+```{r}
+data("HairEyeColor")
+HairEyeColor
+```
+Since the dataset does not have factorized data. We are creating factorized vector of male hair color as a population.
+```{r}
+male_hair_col <- c()
+iter_times <- c(32, 53, 10, 3)
+color <- c("Black", "Brown", "Red", "Blond")
+
+for(i in 1:4){
+  for(j in 1:iter_times[i]){
+    if(i==1){
+      male_hair_col <- c(male_hair_col, "Black")
+    }else if (i==2){
+      male_hair_col <- c(male_hair_col, "Brown")
+    }else if (i==3){
+      male_hair_col <- c(male_hair_col, "Red")
+    }else{
+      male_hair_col <- c(male_hair_col, "Blond")
+    }
+  }
+}
+  
+male_hair_col
+
+```
+We have assumed that every hair color will have same probability (0.25) to occur in the population. We want to determine if the observed distribution of hair colors is significant wrt to the expected frequency. Thus, we will do Goodness of Fit test.
+
+```{r}
+library(lsr)
+
+male_hair_col <- as.factor(male_hair_col)
+goodnessOfFitTest(male_hair_col)
+```
+Here we observe, since the p-value is less than 0.001, indicating that the observed distribution is significantly different from the expected equal distribution. Thus, the assumption of equal probabilities for hair color in the population is likely incorrect.
+
+
+Similarly, since the dataset for female hair is also not factorized. We will factorize it.
+```{r}
+fmale_hair_col <- c()
+iter_times <- c(36, 66, 16, 4)
+color <- c("Black", "Brown", "Red", "Blond")
+
+for(i in 1:4){
+  for(j in 1:iter_times[i]){
+    if(i==1){
+      fmale_hair_col <- c(fmale_hair_col, "Black")
+    }else if (i==2){
+      fmale_hair_col <- c(fmale_hair_col, "Brown")
+    }else if (i==3){
+      fmale_hair_col <- c(fmale_hair_col, "Red")
+    }else{
+      fmale_hair_col <- c(fmale_hair_col, "Blond")
+    }
+  }
+}
+  
+fmale_hair_col
+fmale_hair_col <- as.factor(fmale_hair_col)
+```
+Saving the no. of times males and females with black hair occur in the total population
+```{r}
+male_times <- 32+53+10+3
+fmale_times <- 36+66+16+4
+total <- male_times + fmale_times
+```
+
+Factorizing the gender column
+```{r}
+gender <- c()
+ for (i in 1:total){
+   if (i< male_times | i== male_times){
+     gender <- c(gender, "male")
+   }
+   else{
+     gender <- c(gender, "female")
+   }
+ }
+
+gender
+```
+Factorizing the male and female hair color column
+```{r}
+mf_col <- c(male_hair_col, fmale_hair_col)
+mf_col
+```
+```{r}
+mf_df <- data.frame(gender = gender, mf_col = mf_col)
+head(mf_df)
+```
+Now we will be comparing the two independent sets of distribution i.e., gender and hair color. 
+```{r}
+mf_df$gender <- as.factor(mf_df$gender)
+head(mf_df)
+```
+To determine if the hair color of the person is dependent of their gender (male or female) or not.
+```{r}
+associationTest( formula = ~mf_col+gender, data = mf_df )
+```
+Since the p-value is very high (> 0.05), we fail to reject the null hypothesis. This suggests that there is no statistically significant relationship between hair color and gender. Also the effect size of 0.051 indicates a very weak association between the two variables.
+
+
+```{r}
+mf_tabs <- xtabs( ~ gender + mf_col, data = mf_df)
+mf_tabs
+```
+
+```{r}
+library(chisq.posthoc.test)
+chisq.posthoc.test(mf_tabs)
+```
+p-values for all residuals are 1.000 signifies that hair color and gender are independent with no significant association. The post-hoc analysis confirms that no individual hair color category contributes significantly to any association between hair color and gender. Thus, no meaningful dependence between hair color and gender in the data.
+
+```{r}
+fisher.test(mf_tabs)
+```
+Since the p-value is greater than 0.05, there is no significant association between gender and hair color. 
+H(Null)= Hair color is independent of gender
+H(Alternate)= Hair color is dependent on gender
+
+Both the Chi-square test and Fisher's Exact Test show that there is no significant relationship between gender and hair color in my dataset. This confirms that hair color is independent of gender in this sample.
+
+
+
+#T-test
+
+```{r}
+library(readxl)
+```
+
+The dataset contains the gross total of mess bill of the students in Hall 4 at IITK
+```{r}
+data <- read_excel("C:/Users/JUHI/Downloads/mess.xlsx")
+head(data)
+```
+
+```{r}
+library(lsr)
+```
+
+Suppose the average mess bill per month of IITK all halls is 3000 (population mean). 
+```{r}
+oneSampleTTest(data$Gross_total, mu=3000)
+```
+-53.688 signifies that the sample mean is much lower than the population mean of 3000.Since the p-value is less than 0.05, we reject the null hypothesis. This means the sample mean of 1422.45 is significantly different from 3000. 1.964 indicates a very large effect size. Thus, indicating the difference between the sample mean and 3000 is practically significant.
+
+
+```{r}
+data(iris)
+iris
+```
+```{r}
+library(tidyverse)
+```
+
+For performing the independent sample t-test we need to find the difference between 2 independent groups i.e., "setosa" and "viginica" species. 
+```{r}
+library(dplyr)
+flower <- filter(iris, Species == "setosa" | Species == "virginica")
+flower
+```
+The test compares Petal.Length between two species: setosa and virginica. Which species has longer petal length?
+```{r}
+independentSamplesTTest(
+      formula = Petal.Length ~ Species,  # formula specifying outcome and group variables
+      data = flower,               # data frame that contains the variables
+      var.equal = TRUE              # assume that the two groups have the same variance
+  )
+```
+The large difference between means (1.462 and 5.552) suggests these groups differ significantly in Petal Length with virginica having much longer petals on average. -49.986 large t-value suggests a strong difference between the two groups. <.001 extremely small p-value indicates the difference is statistically significant, leading to a rejection of the null hypothesis. Extremely large effect size, meaning the difference between the two groups is not only statistically significant but also highly meaningful.
+
+
+Similarly, following test compares Sepal.Width between two species: setosa and virginica.
+```{r}
+independentSamplesTTest(
+      formula = Sepal.Width ~ Species,  # formula specifying outcome and group variables
+      data = flower,               # data frame that contains the variables
+      var.equal = TRUE              # assume that the two groups have the same variance
+  )
+```
+The higher mean for setosa (3.428) suggests that it generally has wider sepals compared to virginica (2.974).The very small p-value means we reject the null hypothesis, indicating a significant difference between the two species.The Sepal Width differs significantly between setosa and virginica, with setosa having wider sepals on average. The high t-statistic, small p-value, and large effect size confirm that this difference is meaningful and not due to random chance.
+
+
+Similarly, following test compares Petal.Width between two species: setosa and virginica.
+```{r}
+independentSamplesTTest(
+      formula = Petal.Width ~ Species,  # formula specifying outcome and group variables
+      data = flower,               # data frame that contains the variables
+      var.equal = TRUE              # assume that the two groups have the same variance
+  )
+```
+The Petal Width of setosa and virginica differs significantly, with virginica having much wider petals on average. The large effect size of 8.557 confirms that this difference is both statistically and practically significant.
+
+
+Similarly, following test compares Sepal.Length between two species: setosa and virginica.
+```{r}
+independentSamplesTTest(
+      formula = Sepal.Length ~ Species,  # formula specifying outcome and group variables
+      data = flower,               # data frame that contains the variables
+      var.equal = TRUE              # assume that the two groups have the same variance
+  )
+```
+The Sepal Length of setosa and virginica differs significantly, with virginica having much longer sepals on average. The very low p-value and large effect size confirm that this difference is both statistically and practically significant, highlighting a clear distinction between the two species.
+
+
+Loading a dataset containing the mess bill of two months i.e., September and October.
+```{r}
+mess <- read_excel("C:/Users/JUHI/Downloads/paired_mess.xlsx")
+mess$gross_sept <- as.numeric(mess$gross_sept)
+mess$gross_oct <- as.numeric(mess$gross_oct)
+mess
+
+```
+
+```{r}
+library(jmv)
+```
+
+Adding a column change containing the indvidual savings of each student on the mess bill to perform paired sample t-test.
+```{r}
+mess$change <- mess$gross_sept - mess$gross_oct
+head(mess)
+```
+
+```{r}
+oneSampleTTest(mess$change, mu=0)
+```
+On average, students saved Rs. 130 on their October bill compared to September.Since the p-value is extremely small, we reject the null hypothesis. This indicates that the change in mess bills is statistically significant, with an average saving across students. Effect size 0.699 indicates a moderate to large effect size, suggesting the change is meaningful in practical terms. 
+
+```{r}
+qqnorm( y = mess$change ) 
+```
+the sample contains extreme values or outliers that do not conform to the normal distribution.
+
+```{r}
+shapiro.test( x = mess$change )
+```
+W = 0.332 suggests that the data deviates significantly from normality. The change in mess bill values is not normally distributed.
+
+As previously confirmed by the Shapiro-Wilk test, the data is not normal distribution thus, we will perform wilcoxon test.
+```{r}
+wilcox.test( x = mess$change, mu=0)
+```
+The median change in mess bills is significantly different from 0.
+
+
+Performing Welch’s t-test to compare Sepal.Length between two species (e.g., setosa and virginica) in the iris dataset.
+```{r}
+t.test (formula = Sepal.Length ~ Species, data = flower)
+```
+The test shows a significant difference in Sepal Length between the two species, with virginica having longer sepals than setosa.
+
+

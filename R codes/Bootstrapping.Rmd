@@ -1,0 +1,160 @@
+---
+title: "Bootstrapping"
+author: "Juhi Bhattacharya"
+date: "2024-11-13"
+output: html_document
+---
+
+
+```{r}
+library(mosaic)
+library(here)
+```
+
+```{r}
+exam_score <- read.csv(here("C:/Users/JUHI/OneDrive - IIT Kanpur/Sem 1/Stats/Assignments R/student_data.csv"))
+head(exam_score)
+```
+The dataset I selected includes reading scores of individuals from various ethnic groups, each with different facilities.
+
+To demonstrate sampling distribution, I examined the sampling distribution of the sample mean for individual reading scores.
+
+First, I calculated the overall mean of reading scores across all individuals (population mean).
+
+Then, I took samples of size 100, resampling 10,000 times, and created a histogram of the sample means.
+
+Next, I calculated the standard error of the distribution (the standard deviation of sample means), which was used to construct a 95% confidence interval following the mean ± 2SD rule.
+
+```{r}
+#Calculating the mean reading score
+mean(~ReadingScore, data=exam_score)
+```
+```{r}
+#For sampling distribution, resampling 100 reading score for 10000 times
+set.seed(03222007)
+
+samp.mean<-do(10000)*{
+mean(~ReadingScore, data=sample(exam_score, size= 100))
+}
+
+head(samp.mean)
+```
+
+```{r}
+ggplot(samp.mean, aes(x=result)) + 
+ geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30)+
+ geom_density(alpha=.2, fill="red") + labs(title="sample mean distribution",x="sample mean", y = "Count")
+```
+```{r}
+#Standard error of distribution
+(se.mean<-sd(~result, data=samp.mean))
+```
+```{r}
+#Checking 2 SE rule: mean+_2SD interval
+(rule.2SE<-mean(~result, data=samp.mean)+c(-2, 2)*se.mean)
+```
+```{r}
+#Proportion that fall in above interval
+tally(~I(result >= 66.41962 & result <=72.35132),
+data=samp.mean, format="proportion")
+```
+
+#CONCLUSION
+
+Treating the dataset as the population, the mean reading score is 69.37.
+
+Resampling with a sample size of 100, repeated 10,000 times, resulted in a standard error of 1.483 in the distribution. Additionally, 95% of individuals have reading scores between 66.42 and 72.35, which falls within 2 standard errors of the mean.
+
+#Checking the central limit theorem
+
+The Central Limit Theorem states that as the sample size grows, the sampling distribution of the mean tends to follow a normal distribution.
+
+To examine this, I used sample sizes of 5 and 10 and compared their sampling distributions of the mean with the distribution obtained from a larger sample size of 100.
+
+```{r}
+#Checking central limit theorem with small sample size i.e., 5 and 10
+set.seed(03222007)
+
+samp.mean<-do(10000)*{
+mean(~ReadingScore, data=sample(exam_score, size= 5))
+}
+
+head(samp.mean)
+```
+```{r}
+ggplot(samp.mean, aes(x=result)) + 
+ geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30)+
+ geom_density(alpha=.2, fill="red") + labs(title="sample mean distribution with size 5",x="sample mean", y = "Count")
+```
+```{r}
+samp.mean<-do(10000)*{
+mean(~ReadingScore, data=sample(exam_score, size= 10))
+}
+
+head(samp.mean)
+```
+```{r}
+ggplot(samp.mean, aes(x=result)) + 
+ geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30)+
+ geom_density(alpha=.2, fill="red") + labs(title="sample mean distribution with size 10",x="sample mean", y = "Count")
+```
+#CONCLUSION
+The histogram shows that with smaller sample sizes, the sampling distribution is skewed. However, as the sample size increases, the distribution becomes more normal.
+
+#BOOTSTRAPPING
+In the previous example, I performed resampling without replacement, where each resample contained different subsets of the same sample size. In practice, we usually don’t have access to large samples, and often analysis is based on a single sample.
+
+In such cases, drawing conclusions about the population is challenging.
+
+To address this, bootstrapping can be used. This approach involves resampling from the same sample multiple times with replacement, giving each observation an equal chance of selection in every resample.
+
+This process creates a bootstrap sampling distribution, allowing us to measure how much estimates vary across bootstrap samples by calculating the bootstrap standard error.
+
+The standard error then helps to construct a confidence interval using the 2 SE rule, which indicates the confidence that the sampling distribution includes the population parameter.
+
+Additionally, bootstrapping is useful for estimating standard errors and confidence intervals to compare differences between two groups.
+
+For illustration, I used a dataset containing cancer cases before (1985) and after (1986) the Chernobyl accident.
+
+```{r}
+#Bootstrapping 
+cancer <- read.csv(here("C:/Users/JUHI/OneDrive - IIT Kanpur/Sem 1/Stats/Assignments R/cancer_Chernobyl_Belarus.csv"))
+head(cancer)
+```
+```{r}
+tally(~year, data = cancer)
+```
+```{r}
+mean(cases~year, data=cancer)
+```
+```{r}
+effect_size <- diffmean(cases~year, data=cancer)
+effect_size
+```
+```{r}
+bootdist<-do(10000)*{
+diffmean(cases~year, data=resample(cancer, group=year))
+}
+
+head(bootdist)
+```
+
+```{r}
+ggplot(bootdist, aes(x=diffmean)) + 
+ geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30)+
+ geom_density(alpha=.2, fill="blue") + labs(title=" mean difference distribution ",x="mean difference", y = "Count")
+```
+```{r}
+SE<-sd(~diffmean, data=bootdist) 
+SE
+```
+```{r}
+confidence_interval<-effect_size + c(-2, 2)*SE
+
+confidence_interval
+```
+#CONCLUSION
+
+The average cancer case rate rose by approximately 3.43 following the accident. To assess the uncertainty around this estimated effect, I calculated the standard error (variability in the difference of means across bootstrapped samples), which was 2.97.
+
+Finally, applying the 2 SE rule for a 95% confidence interval revealed a broad possible impact range of the accident, from virtually no effect to as much as 9 cases per 1000 individuals.

@@ -1,0 +1,215 @@
+---
+title: "A7"
+author: "Juhi Bhattacharya"
+date: "2024-11-04"
+output: html_document
+---
+
+#LINEAR REGRESSION
+
+```{r}
+data("airquality")
+```
+
+```{r}
+head(airquality)
+```
+
+```{r}
+data <- na.omit(airquality)
+head(data)
+```
+```{r}
+sum(is.na(data))
+```
+
+```{r}
+m1 <- lm( formula = Ozone ~ Solar.R,  
+                    data = data )
+m2 <- lm( formula = Ozone ~ Wind,  
+                    data = data )
+m3 <- lm( formula = Ozone ~ Temp,  
+                    data = data )
+print( m1)
+print( m2)
+print( m3)
+```
+```{r}
+summary(m1)
+```
+
+```{r}
+summary(m2)
+```
+```{r}
+summary(m3)
+```
+```{r}
+confint(object=m1, level=0.99)
+```
+```{r}
+confint(object=m2, level=0.99)
+```
+```{r}
+confint(object=m3, level=0.99)
+```
+From the confidence interval we can see that the intercepts and slopes of all the linear models lie in the 99% ci. 
+From the p-values we can say that all the linear models are significant i.e., all the factors (temp., solar radiation and wind) are related to ozone depletion.
+
+# Let us consider m1 model (Ozone~Solar.R)
+# Cook's distance
+```{r}
+plot(m1,which=4)
+```
+```{r}
+lm( formula = Ozone ~ Solar.R,  
+     data = data,      
+     subset = -117             
+ )
+```
+As we can see the cook's distance is <1 so outlier is not considered. Also the value of intercept and slope does'nt change significantly when the highest outlier is removed i.e., 117.
+
+# Checking for the assumptions
+
+1. Normality of residuals
+```{r}
+plot( x = m1, which = 2 )
+```
+```{r}
+shapiro.test(residuals(m1))
+```
+The residuals do not seem to be normally distributed. The null hypothesis is rejected.
+
+2. Leniarity of relationship
+```{r}
+library(car)
+library(carData)
+```
+
+```{r}
+residualPlots( model = m1 ) 
+```
+The residuals are not linear. High cuvature. We need to transform.
+Applying Box cox transformation
+```{r}
+box_cox_m1 <- lm (log(Ozone) ~ log(Solar.R), data=data)
+residualPlots( model = box_cox_m1 )
+```
+After transformation we can see some level of linearity is attained
+
+3. Homogeneity of variance
+```{r}
+plot(x = m1, which = 3)
+```
+```{r}
+ncvTest( m1 )
+```
+Since the p-value is low, Null hypothesis is rejected thus, the variance is not homogeneous i.e. not ok.
+
+# MULTIPLE REGRESSION
+
+```{r}
+data(mtcars)
+head(mtcars)
+?mtcars
+```
+```{r}
+reg1 <- lm(mpg ~ cyl + gear + hp, data=mtcars)
+print(reg1)
+```
+```{r}
+summary(reg1)
+```
+# Cook's distance
+```{r}
+plot(reg1,which=4)
+```
+As we can see the cook's distance is <1 so outlier is not considered.
+```{r}
+confint(object=reg1, level=0.99)
+```
+From the confidence interval of the three variables, we can see that the intercept and slopes of all the linear models lie in the 99% ci. 
+
+# Checking for 4 assumptions
+
+1. Normality of residuals
+```{r}
+plot( x = reg1 , which = 2) 
+```
+```{r}
+shapiro.test(residuals(reg1))
+```
+Null hypothesis accepted. Thus, the residuals are normally distributed.
+
+2. Linearity 
+```{r}
+residualPlots( model = reg1 ) 
+```
+```{r}
+plot(x = reg1, which = 1)
+```
+As we can see the model is not well fit. We can perform box-cox transformation to leniarise the model.
+```{r}
+bc_reg1 <- lm (log(mpg) ~ log(cyl) + gear + log(hp), data=mtcars)
+bc_reg1
+```
+```{r}
+residualPlots( model = bc_reg1 ) 
+```
+Now the transformed variables seem to be linear.
+
+3. Homogeneity of variance
+```{r}
+plot(x = reg1, which = 3)
+
+```
+```{r}
+ncvTest(reg1)
+```
+Since the p-value is hugh, null hypothesis is accepted. Thus, the residual variance is homogeneous i.e., it is ok.
+
+4. Collinearity
+```{r}
+vif(mod=reg1)
+```
+Since vif for cyl vif>5. This suggests that cyl is highly correlated with one or more of the other predictors in the model.
+Rest gear and hp vif<5 they are acceptable.
+
+# MODEL SELECTION
+
+1. Backward elimination
+
+```{r}
+full.model <- lm( formula = mpg ~ cyl + gear + hp, data=mtcars )
+```
+
+```{r}
+ step( object = full.model,    
+       direction = "backward"   
+ )
+```
+2. Forward selection
+```{r}
+ null.model <- lm( mpg ~ 1, mtcars )   
+ step( object = null.model,     
+       direction = "forward",   
+       scope =  mpg ~ cyl + gear + hp  
+ )
+```
+Both model selection types show different models as best models. However, this shows limitation of model selection since, it does not retrace its analysis to give better result.
+
+```{r}
+M0 <- lm( mpg ~ cyl , mtcars )
+M1 <- lm( mpg ~ gear , mtcars )
+M2 <- lm( mpg ~ hp , mtcars )
+M3 <- lm( mpg ~ cyl + gear , mtcars )
+M4 <- lm( mpg ~ cyl + hp, mtcars )
+M5 <- lm( mpg ~ gear + hp, mtcars )
+M6 <- lm( mpg ~ cyl + gear + hp, mtcars )
+```
+
+Indivdually finding AIC values of models and comparing to find the best model.
+```{r}
+AIC(M0,M1,M2,M3,M4,M5,M6)
+```
+Since, the AIC value of M6 is least. It is the best model i.e., ( mpg ~ cyl + gear + hp, mtcars ) is the best model.

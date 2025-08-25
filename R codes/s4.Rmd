@@ -1,0 +1,219 @@
+---
+title: "Assignment 8"
+author: "Juhi Bhattacharya"
+date: "2024-11-12"
+output: html_document
+---
+
+# Categorical Regression
+
+```{r}
+data(iris)
+head(iris)
+```
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+creating factors for categorical Species
+```{r}
+flower <- filter(iris, Species == 'virginica' | Species == 'versicolor')
+table(flower$Species)
+```
+estimating mean and SD of individual species
+```{r}
+flower %>% group_by(Species) %>%
+summarize(M = mean(Petal.Width), SD = sd(Petal.Width))
+```
+plottig the box plot (Dummy Coding or Treatment Coding)
+```{r}
+flower %>% ggplot(aes(x = Species, y = Petal.Width, fill = Species)) +
+geom_boxplot() + theme_minimal() +
+scale_fill_brewer(palette = 'Accent')
+```
+Taking versicolor as reference
+0-versicolor
+1-virginica
+
+
+```{r}
+f1 <- lm(formula=Petal.Width ~ Species, data = flower)
+print(f1)
+```
+```{r}
+summary(f1)
+```
+Intercept 1.32 represents mean of versicolor species. 0.70 depicts how higher mean of virginica  is from mean of versicolor. Both the intercept and the Speciesvirginica coefficient are highly significant (p < 0.001), suggesting that Species is a significant predictor of Petal.Width.Species is a significant predictor of Petal.Width. The model explains a substantial proportion of the variance in Petal.Width (R-squared = 0.6858), indicating a strong relationship between Species and Petal.Width.
+
+```{r}
+f_preds <- tibble(Species = unique(flower$Species))
+f_preds$fit <- predict(f1,f_preds)
+f_preds
+```
+Now Change the reference - from Versicolor to virginica
+```{r}
+flower <- mutate(flower,
+Species = factor(Species),
+ModRe = relevel(Species, ref = 'virginica'))
+```
+
+```{r}
+f2 <- lm(Petal.Width ~ ModRe, data = flower)
+print(f2)
+```
+As we can see, the slope became -ve i.e, -0.700
+
+Fitting categorical data with more than two levels
+```{r}
+unique(iris$Species)
+```
+```{r}
+iris %>% ggplot(aes(x = Species, y = Petal.Width, fill = Species)) +
+geom_boxplot() + theme_minimal() +
+scale_fill_brewer(palette = 'Accent')
+```
+
+
+```{r}
+f_all <- lm(Petal.Width ~ Species, data = iris)
+print(f_all)
+```
+
+```{r}
+summary(f_all)
+```
+
+All coefficients are highly significant (p < 0.001), indicating that Species significantly affects Petal.Width.This model strongly suggests that Species is a significant predictor of Petal.Width, with virginica having the largest average petal width, followed by versicolor and then setosa. The high R-squared value indicates an excellent fit to the data.
+
+```{r}
+f2_preds <- tibble(Species = sort(unique(iris$Species))) 
+f2_preds$fit <- predict(f_all, f2_preds)
+f2_preds
+```
+These predictions reflect the average Petal.Width for each species based on the model f_all. The values indicate that Petal.Width is smallest for setosa, larger for versicolor, and largest for virginica.
+
+Testing Assumptions for the linear mixed model: 
+
+```{r}
+library(easystats)
+```
+
+```{r}
+check_normality(f1)
+```
+```{r}
+check_heteroscedasticity(f1)
+```
+
+```{r}
+check_collinearity(f1)
+```
+```{r}
+check_model(f1)
+```
+Testing Assumptions for the multiple mixed model: 
+
+```{r}
+check_normality(f_all)
+```
+```{r}
+check_heteroscedasticity(f_all)
+```
+
+```{r}
+check_collinearity(f_all)
+```
+```{r}
+check_model(f_all)
+```
+
+
+# Linear Mixed Models
+
+```{r}
+library(magrittr)
+library(tidyverse)
+library(ggplot2)
+```
+
+For linear mixed models, load these libraries
+```{r}
+library(nlme)
+library(lmerTest)
+```
+
+
+```{r}
+data(Orthodont)
+head(Orthodont)
+```
+```{r}
+?Orthodont
+```
+
+```{r}
+ggplot(Orthodont, aes(x = age, 
+                   y = distance)) +
+  geom_point()  +
+  facet_wrap(~Subject) +
+  labs(y = "Distance", 
+       x = "Age")
+```
+Partial Pooling Model
+
+Checking effect of age on the distance between the pituitary and the pterygomaxillary fissure = FIXED EFFECT
+```{r}
+pp_mod1 <- lmer(distance ~ age + (1+age | Subject), Orthodont)  #RI+RS
+summary(pp_mod1)
+```
+Fixed Effect: age has a significant positive effect on distance, with distance increasing as age increases.
+Random Effects: Subjects have varying baseline distances and responses to age, and these variations are correlated.
+This model indicates that, on average, distance increases with age, but the rate of increase and baseline levels vary between subjects.
+
+```{r}
+pp_mod2 <- lmer(distance ~ age + (1 | Subject), Orthodont)  #RI
+summary(pp_mod2)
+```
+Fixed Effect of Age: age has a significant positive effect on distance, with distance increasing as age increases.
+Random Effect of Subject: There is variability in baseline distance across subjects, but the effect of age on distance is consistent across all subjects.
+This model indicates that, on average, distance increases with age, and each subject has a unique baseline distance level. However, the rate of increase in distance with age is the same across all subjects.
+
+```{r}
+pp_mod3 <- lmer(distance ~ age + (0+age | Subject), Orthodont)  #RS
+summary(pp_mod3)
+```
+Fixed Effect of Age: There is a significant positive relationship between age and distance, with distance increasing as age increases.
+Random Effect of Age Slope for Each Subject: The effect of age on distance varies across subjects, though the variability is relatively small (Std.Dev. = 0.1895).
+This model suggests that distance generally increases with age, but the rate of increase varies slightly among subjects.
+
+```{r}
+AIC(pp_mod1, pp_mod2, pp_mod3)
+```
+AIC value of random slope model is the least so it is the best model.
+
+```{r}
+anova(pp_mod1, pp_mod2, pp_mod3)
+```
+Using the Likelyhood ratio test we verified that random slope model (pp_mod3) is the best model since less chi sq and AIC values.
+
+Testing Assumptions for random slope model (pp_mod3): 
+
+```{r}
+library(easystats)
+```
+
+```{r}
+check_normality(pp_mod3)
+```
+```{r}
+check_heteroscedasticity(pp_mod3)
+```
+
+```{r}
+check_collinearity(pp_mod3)
+```
+
+```{r}
+check_model(pp_mod3)
+```
