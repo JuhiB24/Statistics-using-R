@@ -12,8 +12,6 @@ And also systematically vary the experiment size (variable i): 10, 100, 1000, 10
 
 For each sample, compute the mean, standard deviation and plot the resulting distribution. 
 
-Note down your remarks at the end on what happens with increase in i and n.
-
 ```{r}
 sample_sizes <- c(1, 5, 10, 100, 1000, 10000)
 experiment_sizes <- c(10, 100, 1000, 10000, 100000)
